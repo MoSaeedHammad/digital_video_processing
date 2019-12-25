@@ -43,9 +43,6 @@ def COLOR_Compression(YUV_img, mode = None):
             for j in range(0, YUV_img.shape[1]):
                 if j%2 != 0:
                     YUV_img[i,j,1] = YUV_img[i,j-1,1]
-        for i in range(0,YUV_img.shape[0]):
-            for j in range(0, YUV_img.shape[1]):
-                if j%2 != 0:
                     YUV_img[i,j,2] = YUV_img[i,j-1,2]
     elif mode == '4:2:0':
         for i in range(0,YUV_img.shape[0]):
@@ -53,29 +50,19 @@ def COLOR_Compression(YUV_img, mode = None):
                 if i%2 == 0:
                     if j%2 != 0:
                         YUV_img[i,j,1] = YUV_img[i,j-1,1]
-                else:
-                    if j%2 != 0:
-                        YUV_img[i,j,1] = YUV_img[i-1,j-1,1]
-                    else:
-                        YUV_img[i,j,1] = YUV_img[i-1,j,1]
-        for i in range(0,YUV_img.shape[0]):
-            for j in range(0, YUV_img.shape[1]):
-                if i%2 == 0:
-                    if j%2 != 0:
                         YUV_img[i,j,2] = YUV_img[i,j-1,2]
                 else:
                     if j%2 != 0:
+                        YUV_img[i,j,1] = YUV_img[i-1,j-1,1]
                         YUV_img[i,j,2] = YUV_img[i-1,j-1,2]
                     else:
+                        YUV_img[i,j,1] = YUV_img[i-1,j,1]
                         YUV_img[i,j,2] = YUV_img[i-1,j,2]                    
     elif mode == '4:1:1':
         for i in range(0,YUV_img.shape[0]):
             for j in range(0, YUV_img.shape[1]):
                 if j%4 != 0:
                     YUV_img[i,j,1] = YUV_img[i,j-1,1]
-        for i in range(0,YUV_img.shape[0]):
-            for j in range(0, YUV_img.shape[1]):
-                if j%4 != 0:
                     YUV_img[i,j,2] = YUV_img[i,j-1,2]
     elif mode == '4:4:0':
         for i in range(0,YUV_img.shape[0]):
@@ -84,90 +71,62 @@ def COLOR_Compression(YUV_img, mode = None):
                     break
                 else:
                     YUV_img[i,j,1] = YUV_img[i-1,j,1]
-        for i in range(0,YUV_img.shape[0]):
-            for j in range(0, YUV_img.shape[1]):
-                if i%2 == 0:
-                    break
-                else:
                     YUV_img[i,j,1] = YUV_img[i-1,j,1]          
     elif mode == '4:2:0_Average':
         for i in range(0,YUV_img.shape[0]):
             for j in range(0, YUV_img.shape[1]):
                 if i%2 == 0:
                     if j%2 == 0:
-                        YUV_img[i,j,1] = np.mean( (YUV_img[i,j+1,1], YUV_img[i,j,1], YUV_img[i+1,j,1], YUV_img[i+1,j+1,1]) )
+                        YUV_img[i,j,1] = np.mean(YUV_img[i:i+1,j:j+1,1])
+                        YUV_img[i,j,2] = np.mean(YUV_img[i:i+1,j:j+1,2])
                     else:
                         YUV_img[i,j,1] = YUV_img[i,j-1,1]
-                else:
-                    YUV_img[i,j,1] = YUV_img[i-1,j,1]
-        for i in range(0,YUV_img.shape[0]):
-            for j in range(0, YUV_img.shape[1]):
-                if i%2 == 0:
-                    if j%2 == 0:
-                        YUV_img[i,j,2] = np.mean( (YUV_img[i,j+1,2], YUV_img[i,j,2], YUV_img[i+1,j,2], YUV_img[i+1,j+1,2]) )
-                    else:
                         YUV_img[i,j,2] = YUV_img[i,j-1,2]
                 else:
+                    YUV_img[i,j,1] = YUV_img[i-1,j,1]
                     YUV_img[i,j,2] = YUV_img[i-1,j,2]
+
     elif mode == '4:2:0_Median':
         for i in range(0,YUV_img.shape[0]):
             for j in range(0, YUV_img.shape[1]):
                 if i%2 == 0:
                     if j%2 == 0:
-                        YUV_img[i,j,1] = np.median( (YUV_img[i,j+1,1], YUV_img[i,j,1], YUV_img[i+1,j,1], YUV_img[i+1,j+1,1]) )
+                        YUV_img[i,j,1] = np.median(YUV_img[i:i+1,j:j+1,1])
+                        YUV_img[i,j,2] = np.median(YUV_img[i:i+1,j:j+1,2])
                     else:
                         YUV_img[i,j,1] = YUV_img[i,j-1,1]
-                else:
-                    YUV_img[i,j,1] = YUV_img[i-1,j,1]
-        for i in range(0,YUV_img.shape[0]):
-            for j in range(0, YUV_img.shape[1]):
-                if i%2 == 0:
-                    if j%2 == 0:
-                        YUV_img[i,j,2] = np.median( (YUV_img[i,j+1,2], YUV_img[i,j,2], YUV_img[i+1,j,2], YUV_img[i+1,j+1,2]) )
-                    else:
                         YUV_img[i,j,2] = YUV_img[i,j-1,2]
                 else:
+                    YUV_img[i,j,1] = YUV_img[i-1,j,1]
                     YUV_img[i,j,2] = YUV_img[i-1,j,2]
     elif mode == '4:2:2_Average':
         for i in range(0,YUV_img.shape[0]):
             for j in range(0, YUV_img.shape[1]):
                 if j%2 == 0:
-                    YUV_img[i,j,1] = np.mean( (YUV_img[i,j,1], YUV_img[i,j+1,1]) )
+                    YUV_img[i,j,1] = np.mean(YUV_img[i,j:j+1,1])
+                    YUV_img[i,j,2] = np.mean(YUV_img[i,j:j+1,2])
                 else:
                     YUV_img[i,j,1] = YUV_img[i,j-1,1]
-        for i in range(0,YUV_img.shape[0]):
-            for j in range(0, YUV_img.shape[1]):
-                if j%2 == 0:
-                    YUV_img[i,j,2] = np.mean( (YUV_img[i,j,2], YUV_img[i,j+1,2]) )
-                else:
                     YUV_img[i,j,2] = YUV_img[i,j-1,2]
     elif mode == '4:1:1_Average':
         for i in range(0,YUV_img.shape[0]):
             for j in range(0, YUV_img.shape[1]):
                 if j%4 == 0:
-                    YUV_img[i,j,1] = np.mean( (YUV_img[i,j,1], YUV_img[i,j+1,1], YUV_img[i,j+2,1], YUV_img[i,j+3,1]) )
+                    YUV_img[i,j,1] = np.mean( (YUV_img[i,j:j+3,1]) )
+                    YUV_img[i,j,2] = np.mean( (YUV_img[i,j:j+3,2]) )
                 else:
                     YUV_img[i,j,1] = YUV_img[i,j-1,1]
-        for i in range(0,YUV_img.shape[0]):
-            for j in range(0, YUV_img.shape[1]):
-                if j%4 == 0:
-                    YUV_img[i,j,2] = np.mean( (YUV_img[i,j,2], YUV_img[i,j+1,2], YUV_img[i,j+2,2], YUV_img[i,j+3,2]) )
-                else:
                     YUV_img[i,j,2] = YUV_img[i,j-1,2]
     elif mode == '4:1:1_Median':
         for i in range(0,YUV_img.shape[0]):
             for j in range(0, YUV_img.shape[1]):
                 if j%4 == 0:
-                    YUV_img[i,j,1] = np.median( (YUV_img[i,j,1], YUV_img[i,j+1,1], YUV_img[i,j+2,1], YUV_img[i,j+3,1]) )
+                    YUV_img[i,j,1] = np.median( (YUV_img[i,j:j+3,1]) )
+                    YUV_img[i,j,2] = np.median( (YUV_img[i,j:j+3,2]) )
                 else:
                     YUV_img[i,j,1] = YUV_img[i,j-1,1]
-        for i in range(0,YUV_img.shape[0]):
-            for j in range(0, YUV_img.shape[1]):
-                if j%4 == 0:
-                    YUV_img[i,j,2] = np.median( (YUV_img[i,j,2], YUV_img[i,j+1,2], YUV_img[i,j+2,2], YUV_img[i,j+3,2]) )
-                else:
                     YUV_img[i,j,2] = YUV_img[i,j-1,2]
-    print("{0}\t Compression Execution Time : {1} seconds".format(mode,(time.time() - start_time)))
+    print("{0:<15} Compression Execution Time : {1} seconds".format(mode,(time.time() - start_time)))
     return YUV
 
 if __name__ == "__main__":
@@ -186,7 +145,7 @@ if __name__ == "__main__":
             
             start_time=time.time()
             Reconstructed_RGB = Convert_YUV_RGB(Compressed_YUV, True)
-            print("Reconstructed_RGB Conversion Execution Time : {} seconds".format((time.time() - start_time)))
+            #print("Reconstructed_RGB Conversion Execution Time : {} seconds".format((time.time() - start_time)))
 
 
             MSE = np.mean( (RGB_img - Reconstructed_RGB)**2 )
@@ -208,8 +167,8 @@ if __name__ == "__main__":
             ax2[0].title.set_text('Reconstructed RGB')
             ax2[1].imshow(np.uint8(diff_mat))
             ax2[1].title.set_text('Difference')
-            plt.show()
-            plt.pause(0.05)
+#             plt.show()
+#             plt.pause(0.05)
             nimage_name = image_name.split('.')[0]
             Mode = Mode.replace(':','_')
             plt.savefig("csc_output/"+str(Mode)+'_'+nimage_name+'.png', format='png')
