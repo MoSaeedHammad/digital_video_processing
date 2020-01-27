@@ -1,0 +1,3 @@
+[submodule "VLC"]
+	path = VLC
+	url = https://github.com/ahmedhussien91/VLC.git
