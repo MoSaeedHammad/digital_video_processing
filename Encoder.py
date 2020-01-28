@@ -1,50 +1,79 @@
 import time
 import numpy as np
 import matplotlib.pyplot as plt
-import math
 from PIL import Image
-from 
+import glob
+import os
+import pickle
+from ME.HASM import MeshMotionEstimation, MeshMotionCompensation
+from CCS.ColorSpaceConversion import Convert_RGB_YUV, Convert_YUV_RGB, COLOR_Compression
+from DCT.DCT import DCTQ_Encode
 
-if __name__ == "__main__":
+class MESH_Encoder():
+    def __init__(self, PSNR_Threshold = 40, compression_mode='4:4:4', Dump_objs = True, ME_FramesThreshold = 7):
+        self.Optimize_Motion = False
+        self.PSNR_Threshold = PSNR_Threshold
+        self.compression_mode = compression_mode
+        self.seq_counter = 0
+        self.ME_FramesThreshold = ME_FramesThreshold
+        self.Dump_objs = Dump_objs
+        self.ME_counter = 0
+    
+    def new_sequence(self):
+        self.Optimize_Motion = False
+        self.seq_counter = 0
+        self.init_frame = np.empty((1,1))
+        self.ME_counter = 0
 
-    mode_list = ['4:4:4','4:2:2', '4:2:0', '4:1:1', '4:4:0','4:2:0_Average', '4:2:0_Median', '4:2:2_Average', '4:1:1_Average', '4:1:1_Median']
-    img_list = ['f0.bmp']
-    fig, (ax1, ax2) = plt.subplots(2,2, figsize=(20,20))
-    for image_name in img_list:
-        RGB_img = Image.open("video_input/"+image_name)
-        start_time=time.time()
+    def Encode(self, RGB_img):
+
         YUV = Convert_RGB_YUV(RGB_img)
-        print("RGB->YUV444 Conversion Execution Time : {0} seconds".format((time.time() - start_time)))
-        for Mode in mode_list:
-            
-            Compressed_YUV = COLOR_Compression(YUV,Mode)
-            
-            start_time=time.time()
-            Reconstructed_RGB = Convert_YUV_RGB(Compressed_YUV, True)
-            #print("Reconstructed_RGB Conversion Execution Time : {} seconds".format((time.time() - start_time)))
 
+        Compressed_YUV = COLOR_Compression(YUV,'4:4:4')#TODO: Argument
 
-            MSE = np.mean( (RGB_img - Reconstructed_RGB)**2 )
+        if self.Optimize_Motion == True:
 
-            if MSE == 0:
-                PSNR = np.Infinity
+            t1 = time.time()
+            PSNR, mv = MeshMotionEstimation(self.init_frame, Compressed_YUV)
+            time_f = (time.time()-t1)
+            print("Mesh estimation Time for CPU Not accelerated {} s".format(time_f))#TODO: Logger report with time
+            print("MESH PSNR: {}".format(PSNR))
+
+            if PSNR >= self.PSNR_Threshold or self.ME_counter >= self.ME_FramesThreshold:
+
+                self.ME_counter = 0
+                
+                self.init_frame = Compressed_YUV
+                
+                t1 = time.time()
+                Quantized_img = DCTQ_Encode(np.float32(Compressed_YUV))#TODO: Refactor and optimize
+                time_f = (time.time()-t1)
+                print("Quantization Time for CPU Accelerated {} s".format(time_f))#TODO: Logger report with time
+                
+                if self.Dump_objs == True:
+                    pickle.dump(Quantized_img, open('data/Output/obj_'+str(self.seq_counter)+'_DCTQ.mesh_obj',"wb"))
+                    self.seq_counter+=1
+                return Quantized_img
             else:
-                PSNR = 20*math.log10(255.0/math.sqrt(MSE))
-
-            diff_mat = RGB_img-Reconstructed_RGB
-
-            plt.ion()
-            fig.suptitle('Color Compression mode: '+str(Mode)+', PSNR: '+str(PSNR)+' ,MSE: '+str(MSE), fontsize = 16)
-            ax1[0].imshow(np.uint8(RGB_img))
-            ax1[0].title.set_text('Original RGB image')
-            ax1[1].imshow(np.uint8(Compressed_YUV))
-            ax1[1].title.set_text('YUV Image')
-            ax2[0].imshow(np.uint8(Reconstructed_RGB))
-            ax2[0].title.set_text('Reconstructed RGB')
-            ax2[1].imshow(np.uint8(diff_mat))
-            ax2[1].title.set_text('Difference')
-#             plt.show()
-#             plt.pause(0.05)
-            nimage_name = image_name.split('.')[0]
-            Mode = Mode.replace(':','_')
-            plt.savefig("csc_output/"+str(Mode)+'_'+nimage_name+'.png', format='png')
+                self.ME_counter += 1
+                if self.Dump_objs == True:
+                    pickle.dump(mv, open('data/Output/obj_'+str(self.seq_counter)+'_ME.mesh_obj',"wb"))
+                    self.seq_counter+=1
+                print("Motion Estimation path")#TODO: Logger report with time
+                return mv
+                
+        else:
+            self.ME_counter = 0
+            self.Optimize_Motion = True
+            self.init_frame = Compressed_YUV
+            t1 = time.time()
+            Quantized_img = DCTQ_Encode(Compressed_YUV)#TODO: Refactor and optimze
+            
+            time_f = (time.time()-t1)
+            print("Quantization Time for CPU Accelerated {} s".format(time_f))#TODO: Logger report with time
+            #TODO: Integrate VLC
+            
+            if self.Dump_objs == True:
+                pickle.dump(Quantized_img, open('data/Output/obj_'+str(self.seq_counter)+'_DCTQ.mesh_obj',"wb"))
+                self.seq_counter+=1
+            return Quantized_img

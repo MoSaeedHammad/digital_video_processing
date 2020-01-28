@@ -1,50 +1,102 @@
 import time
 import numpy as np
 import matplotlib.pyplot as plt
-import math
 from PIL import Image
-from 
+import glob
+import os
+import pickle
+import cv2
+from ME.HASM import MeshMotionEstimation, MeshMotionCompensation
+from CCS.ColorSpaceConversion import Convert_RGB_YUV, Convert_YUV_RGB, COLOR_Compression
+from DCT.DCT import DCTQ_Decode
 
-if __name__ == "__main__":
+class MESH_Decoder():
+    def __init__(self, PSNR_Threshold = 40, compression_mode='4:4:4', Dump_objs = True, block_size = 256):
+        self.Optimize_Motion = False
+        self.PSNR_Threshold = PSNR_Threshold
+        self.compression_mode = compression_mode
+        self.seq_counter = 0
+        self.Dump_objs = Dump_objs
+        self.ME_counter = 0
+        self.block_size = block_size
+    
+    def new_sequence(self):
+        self.Optimize_Motion = False
+        self.seq_counter = 0
+        self.f0dash_frame = np.empty((1,1))
+        self.ME_counter = 0
+    
+    def Decode_obj(self, obj, path):
+        #TODO: add VLC
 
-    mode_list = ['4:4:4','4:2:2', '4:2:0', '4:1:1', '4:4:0','4:2:0_Average', '4:2:0_Median', '4:2:2_Average', '4:1:1_Average', '4:1:1_Median']
-    img_list = ['f0.bmp']
-    fig, (ax1, ax2) = plt.subplots(2,2, figsize=(20,20))
-    for image_name in img_list:
-        RGB_img = Image.open("video_input/"+image_name)
-        start_time=time.time()
-        YUV = Convert_RGB_YUV(RGB_img)
-        print("RGB->YUV444 Conversion Execution Time : {0} seconds".format((time.time() - start_time)))
-        for Mode in mode_list:
+        if path == 'mv':
             
-            Compressed_YUV = COLOR_Compression(YUV,Mode)
+            f1_frame = MeshMotionCompensation(obj,obj[1] ,obj[2], self.block_size)
+
+            f1_frame = Convert_YUV_RGB(f1_frame)
+
+            if self.Dump_objs == True:
+                pickle.dump(f1_frame,open('data/im_'+str(pickle_file.split('_')[1])+'.mesh_obj'))
+                
+            return f1_frame
+        
+        elif path == 'DCTQ':
             
-            start_time=time.time()
-            Reconstructed_RGB = Convert_YUV_RGB(Compressed_YUV, True)
-            #print("Reconstructed_RGB Conversion Execution Time : {} seconds".format((time.time() - start_time)))
+            self.f0dash_frame = DCT_Decode(obj)
 
+            #TODO: inverse color compression
 
-            MSE = np.mean( (RGB_img - Reconstructed_RGB)**2 )
+            self.f0dash_frame = Convert_YUV_RGB(self.f0dash_frame)
 
-            if MSE == 0:
-                PSNR = np.Infinity
-            else:
-                PSNR = 20*math.log10(255.0/math.sqrt(MSE))
+            if self.Dump_objs == True:
+                pickle.dump(self.f0dash_frame,open('data/im_'+str(pickle_file.split('_')[1])+'.mesh_obj'))
 
-            diff_mat = RGB_img-Reconstructed_RGB
+            return self.f0dash_frame
 
-            plt.ion()
-            fig.suptitle('Color Compression mode: '+str(Mode)+', PSNR: '+str(PSNR)+' ,MSE: '+str(MSE), fontsize = 16)
-            ax1[0].imshow(np.uint8(RGB_img))
-            ax1[0].title.set_text('Original RGB image')
-            ax1[1].imshow(np.uint8(Compressed_YUV))
-            ax1[1].title.set_text('YUV Image')
-            ax2[0].imshow(np.uint8(Reconstructed_RGB))
-            ax2[0].title.set_text('Reconstructed RGB')
-            ax2[1].imshow(np.uint8(diff_mat))
-            ax2[1].title.set_text('Difference')
-#             plt.show()
-#             plt.pause(0.05)
-            nimage_name = image_name.split('.')[0]
-            Mode = Mode.replace(':','_')
-            plt.savefig("csc_output/"+str(Mode)+'_'+nimage_name+'.png', format='png')
+        else:
+            return None
+
+    def Decode_Pickle(self, pickle_file):
+
+        obj = pickle.load(open(pickle_file,"rb"))
+
+        #TODO: add VLC
+
+        path = pickle_file.split('_')[2].split('.mesh_obj')[0].split('.mesh')[0]
+
+        if path == 'ME':
+            
+            t1 = time.time()
+            f1_frame = MeshMotionCompensation(obj,obj[1] ,obj[2], self.block_size)
+            time_f = (time.time()-t1)
+            print("Mesh Compensation Time for CPU Not accelerated {} s".format(time_f))#TODO: Logger report with time
+
+            f1_frame = Convert_YUV_RGB(f1_frame)
+
+            if self.Dump_objs == True:
+                pickle.dump(f1_frame,open('data/Output/im_'+str(pickle_file.split('_')[1])+'.mesh_obj',"wb"))
+                cv2.imwrite('data/Output/im_'+str(pickle_file.split('_')[1])+'.jpg',np.uint8(self.f0dash_frame))
+
+            return f1_frame
+        
+        elif path == 'DCTQ':
+            
+            t1 = time.time()
+            
+            self.f0dash_frame = DCTQ_Decode(obj)
+            time_f = (time.time()-t1)
+            print("Inverse-Quantization Time for CPU Accelerated {} s".format(time_f))#TODO: Logger report with time
+
+            #TODO: inverse color compression
+
+            self.f0dash_frame = Convert_YUV_RGB(self.f0dash_frame)
+
+            if self.Dump_objs == True:
+                
+                pickle.dump(self.f0dash_frame,open('data/Output/im_'+str(pickle_file.split('_')[1])+'.mesh_obj',"wb"))
+                cv2.imwrite('data/Output/im_'+str(pickle_file.split('_')[1])+'.jpg',np.uint8(self.f0dash_frame))
+
+            return self.f0dash_frame
+
+        else:
+            return None

@@ -1,14 +1,9 @@
-'''
-Created on Dec 25, 2019
-
-@author: msaeedha
-'''
 import time
-
 import numpy as np
 import matplotlib.pyplot as plt
 import math
 from PIL import Image
+from numba import jit, cuda, float32
 
 def Convert_RGB_YUV(RGB_img):
     
@@ -54,7 +49,6 @@ def COLOR_Compression(YUV_img, mode = None):
         YUV_img[1::2,:,1:] = YUV_img[0::2,:,1:]
 
     elif mode == '4:2:0_Average':
-#         YUV_img[0::2,0::2,1:] = np.mean(YUV_img[i:i+1,j:j+1,1:])
         for i in range(0,img_width,2):
             for j in range(0, img_hight,2):
                 YUV_img[i,j,1:] = np.mean(YUV_img[i:i+1,j:j+1,1:])
