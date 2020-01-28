@@ -1,3 +1,6 @@
 [submodule "VLC"]
 	path = VLC
 	url = https://github.com/ahmedhussien91/VLC.git
+[submodule "ME"]
+	path = ME
+	url = https://github.com/IbrahimEl-Shal/Multi-Flow-Object-Detection
